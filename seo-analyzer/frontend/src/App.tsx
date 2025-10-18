@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
+import Login from './Login';
 
 interface SEOAnalysisResult {
   url: string;
@@ -49,11 +50,32 @@ interface SEODetails {
 const API_URL = 'http://localhost:3001/api';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<SEOAnalysisResult | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+
+  // Check authentication status on app load
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/check-auth`, {
+          withCredentials: true
+        });
+        setIsAuthenticated(response.data.isAuthenticated);
+      } catch (err) {
+        console.error('Auth check failed:', err);
+        setIsAuthenticated(false);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   const validateUrl = (urlString: string): boolean => {
     try {
@@ -81,10 +103,17 @@ function App() {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API_URL}/analyze`, { url });
+      const response = await axios.post(`${API_URL}/analyze`, { url }, {
+        withCredentials: true
+      });
       setResult(response.data);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to analyze website. Please try again.');
+      if (err.response?.status === 401) {
+        setError('Session expired. Please log in again.');
+        setIsAuthenticated(false);
+      } else {
+        setError(err.response?.data?.error || 'Failed to analyze website. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -94,6 +123,19 @@ function App() {
     setUrl('');
     setResult(null);
     setError('');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API_URL}/logout`, {}, {
+        withCredentials: true
+      });
+      setIsAuthenticated(false);
+      setResult(null);
+      setUrl('');
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
   };
 
   const getCategoryLabel = (key: string): string => {
@@ -176,12 +218,34 @@ function App() {
     return tips[key] || [];
   };
 
+  if (authLoading) {
+    return (
+      <div className="app">
+        <div className="loading">
+          <div className="spinner"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Login onLogin={() => setIsAuthenticated(true)} />;
+  }
+
   return (
     <div className="app">
       <div className="container">
         <header className="header">
-          <h1>SEO Analyzer</h1>
-          <p>Analyze your website's SEO and get actionable recommendations</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h1>SEO Analyzer</h1>
+              <p>Analyze your website's SEO and get actionable recommendations</p>
+            </div>
+            <button onClick={handleLogout} className="logout-btn">
+              Logout
+            </button>
+          </div>
         </header>
 
         {!result && (
