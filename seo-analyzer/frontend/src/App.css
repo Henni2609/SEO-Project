@@ -30,7 +30,11 @@ body {
   animation: fadeInDown 0.6s ease-out;
 }
 
-.header > div {
+.header-content {
+  position: relative;
+}
+
+.header-text {
   text-align: center;
 }
 
@@ -45,6 +49,12 @@ body {
   cursor: pointer;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
+}
+
+.logout-btn-absolute {
+  position: absolute;
+  top: 0;
+  right: 0;
 }
 
 .logout-btn:hover {

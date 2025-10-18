@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Login.css';
 
@@ -12,6 +13,7 @@ function Login({ onLogin }: LoginProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +28,7 @@ function Login({ onLogin }: LoginProps) {
 
       if (response.data.success) {
         onLogin();
+        navigate('/tool');
       }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login failed');
